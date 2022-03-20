@@ -2,6 +2,7 @@ package nullable
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -24,6 +25,9 @@ func (n Nullable[T]) IsSome() bool {
 // Unwraps the Nullable object, calling os.Exit if the Nullable is null.
 func (n Nullable[T]) Unwrap() T {
 	if n.ptr == nil {
+		var tmp T
+		outStr := fmt.Sprintf("Unwrapped on a null %T", tmp)
+		os.Stderr.WriteString(outStr)
 		os.Exit(1)
 	}
 	return *n.ptr
@@ -48,8 +52,10 @@ func (n Nullable[T]) Fallback(fallback T) T {
 
 // Sets the Nullable's value to the passed value.
 // No cleanup is done on the previously stored value if it existed.
-func (n *Nullable[T]) Set(value T) {
+// A pointer to the stored value is returned.
+func (n *Nullable[T]) Set(value T) *T {
 	n.ptr = &value
+	return n.ptr
 }
 
 // Sets the Nullable's value to null.
@@ -58,7 +64,7 @@ func (n *Nullable[T]) Clear() {
 	n.ptr = nil
 }
 
-// Checks if the json data is equal to null, otherwise fall back on default behavior.
+// Checks if the json data is equal to null. Otherwise falls back onto default behavior.
 func (n *Nullable[T]) UnmarshalJSON(raw []byte) error {
 	if string(raw) == "null" {
 		n.ptr = nil
