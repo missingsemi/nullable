@@ -10,7 +10,7 @@ import (
 func TestFrom(t *testing.T) {
 	v1 := From(10)
 	i := 10
-	v2 := Nullable[int]{&i}
+	v2 := Nullable[int]{&i, true}
 	if *v1.ptr != *v2.ptr {
 		t.Errorf("v.From(10) != Nullable{&10}; Expected equal")
 	}
@@ -20,6 +20,13 @@ func TestNull(t *testing.T) {
 	v := Null[int]()
 	if v.ptr != nil {
 		t.Errorf("v.ptr != nil; Expected equal")
+	}
+}
+
+func TestEmpty(t *testing.T) {
+	v := Empty[int]()
+	if v.ptr != nil || v.present != false {
+		t.Errorf("v = %v; Wanted {nil, false}", v)
 	}
 }
 
@@ -35,13 +42,24 @@ func TestIsNull(t *testing.T) {
 }
 
 func TestHasValue(t *testing.T) {
-	v := Nullable[int]{}
+	v := Nullable[int]{nil, true}
 	if v.HasValue() {
 		t.Errorf("v.HasValue() = true; Expected false")
 	}
 	v = From(10)
 	if !v.HasValue() {
 		t.Errorf("v.HasValue() = false; Expected true")
+	}
+}
+
+func TestIsPresent(t *testing.T) {
+	v := Nullable[int]{nil, true}
+	if !v.IsPresent() {
+		t.Errorf("v.IsPresent() = false; Expected true")
+	}
+	v = Nullable[int]{nil, false}
+	if v.IsPresent() {
+		t.Errorf("v.IsPresent() = true; Expected false")
 	}
 }
 
@@ -150,7 +168,7 @@ func TestNullableClear(t *testing.T) {
 	v.Clear()
 	got := v.ptr == nil
 	if got != true {
-		t.Errorf("v.ptr == nil = %t; Wanted true", got)
+		t.Errorf("v.ptr == nil = %v; Wanted true", got)
 	}
 }
 func TestUnmarshalNull(t *testing.T) {
@@ -158,7 +176,7 @@ func TestUnmarshalNull(t *testing.T) {
 	input := []byte("null")
 	err := json.Unmarshal(input, &v)
 	if err != nil {
-		t.Errorf("err = %t; Wanted nil", err)
+		t.Errorf("err = %v; Wanted nil", err)
 	}
 	got := v.ValueOr(20)
 	if got != 20 {
@@ -171,7 +189,7 @@ func TestUnmarshalSome(t *testing.T) {
 	input := []byte("10")
 	err := json.Unmarshal(input, &v)
 	if err != nil {
-		t.Errorf("err = %t; Wanted nil", err)
+		t.Errorf("err = %v; Wanted nil", err)
 	}
 	got := v.ValueOr(20)
 	if got != 10 {
@@ -188,11 +206,26 @@ func TestUnmarshalFail(t *testing.T) {
 	}
 }
 
+func TestUnmarshalAbsent(t *testing.T) {
+	type S struct {
+		A Nullable[int]
+	}
+	var v S
+	input := []byte("{}")
+	err := json.Unmarshal(input, &v)
+	if err != nil {
+		t.Errorf("err = %v; Wanted nil", err)
+	}
+	if v.A.ptr != nil || v.A.present != false {
+		t.Errorf("v = %v; Wanted {nil, false}", v)
+	}
+}
+
 func TestMarshalSome(t *testing.T) {
 	v := From(10)
 	out, err := json.Marshal(v)
 	if err != nil {
-		t.Errorf("err = %t; Wanted nil", err)
+		t.Errorf("err = %v; Wanted nil", err)
 	}
 	if string(out) != "10" {
 		t.Errorf("json.Marshal(v) = %s; Wanted \"10\"", string(out))
@@ -203,7 +236,7 @@ func TestMarshalNull(t *testing.T) {
 	v := Nullable[int]{}
 	out, err := json.Marshal(v)
 	if err != nil {
-		t.Errorf("err = %t; Wanted nil", err)
+		t.Errorf("err = %v; Wanted nil", err)
 	}
 	if string(out) != "null" {
 		t.Errorf("json.Marshal(v) = %s; Wanted \"null\"", string(out))
