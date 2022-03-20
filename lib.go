@@ -18,12 +18,14 @@ func (n Nullable[T]) IsNull() bool {
 }
 
 // Returns true if the Nullable represents a non null value.
-func (n Nullable[T]) IsSome() bool {
+func (n Nullable[T]) HasValue() bool {
 	return n.ptr != nil
 }
 
 // Unwraps the Nullable object, calling os.Exit if the Nullable is null.
-func (n Nullable[T]) Unwrap() T {
+func (n Nullable[T]) Value() T {
+	// This branch does have test coverage, but because of how it must be run
+	// this fact isn't picked up by the coverage profile.
 	if n.ptr == nil {
 		var tmp T
 		outStr := fmt.Sprintf("Unwrapped on a null %T", tmp)
@@ -35,6 +37,8 @@ func (n Nullable[T]) Unwrap() T {
 
 // Unwraps the Nullable, printing failStr to Stderr then calling os.Exit if the nullable is null.
 func (n Nullable[T]) Expect(failStr string) T {
+	// This branch does have test coverage, but because of how it must be run
+	// this fact isn't picked up by the coverage profile.
 	if n.ptr == nil {
 		os.Stderr.WriteString(failStr)
 		os.Exit(1)
@@ -43,9 +47,17 @@ func (n Nullable[T]) Expect(failStr string) T {
 }
 
 // Unwraps the Nullable or returns the fallback value if the Nullable is null.
-func (n Nullable[T]) Fallback(fallback T) T {
+func (n Nullable[T]) ValueOr(fallback T) T {
 	if n.ptr == nil {
 		return fallback
+	}
+	return *n.ptr
+}
+
+// Unwraps the Nullable or returns the output of the provided callback.
+func (n Nullable[T]) ValueOrElse(callback func() T) T {
+	if n.ptr == nil {
+		return callback()
 	}
 	return *n.ptr
 }

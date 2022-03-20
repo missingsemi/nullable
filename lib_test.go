@@ -2,6 +2,8 @@ package nullable
 
 import (
 	"encoding/json"
+	"os"
+	"os/exec"
 	"testing"
 )
 
@@ -32,22 +34,38 @@ func TestIsNull(t *testing.T) {
 	}
 }
 
-func TestIsSome(t *testing.T) {
+func TestHasValue(t *testing.T) {
 	v := Nullable[int]{}
-	if v.IsSome() {
-		t.Errorf("v.IsSome() = true; Expected false")
+	if v.HasValue() {
+		t.Errorf("v.HasValue() = true; Expected false")
 	}
 	v = From(10)
-	if !v.IsSome() {
-		t.Errorf("v.IsSome() = false; Expected true")
+	if !v.HasValue() {
+		t.Errorf("v.HasValue() = false; Expected true")
 	}
 }
 
-func TestNullableUnwrapExpect(t *testing.T) {
+func TestNullableValueNull(t *testing.T) {
+	if os.Getenv("OS_EXIT_TEST") == "1" {
+		v := Null[int]()
+		_ = v.Value()
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestNullableValueNull")
+	cmd.Env = append(os.Environ(), "OS_EXIT_TEST=1")
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		return
+	}
+	t.Fatalf("v.Value() ran with error %v; Wanted exit status 1", err)
+}
+
+func TestNullableValueSome(t *testing.T) {
 	v := From(10)
-	got := v.Unwrap()
+	got := v.Value()
 	if got != 10 {
-		t.Errorf("v.Unwrap() = %d; Wanted 10", got)
+		t.Errorf("v.Value() = %d; Wanted 10", got)
 	}
 
 	got = v.Expect("")
@@ -56,26 +74,72 @@ func TestNullableUnwrapExpect(t *testing.T) {
 	}
 }
 
-func TestNullableFallbackNull(t *testing.T) {
-	v := Nullable[int]{}
-	got := v.Fallback(20)
-	if got != 20 {
-		t.Errorf("v.Fallback(20) = %d; Wanted 20", got)
+func TestNullableExpectNull(t *testing.T) {
+	if os.Getenv("OS_EXIT_TEST") == "1" {
+		v := Null[int]()
+		_ = v.Expect("")
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestNullableExpectNull")
+	cmd.Env = append(os.Environ(), "OS_EXIT_TEST=1")
+	err := cmd.Run()
+	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+		return
+	}
+	t.Fatalf("v.Expect() ran with error %v; Wanted exit status 1", err)
+}
+
+func TestNullableExpectSome(t *testing.T) {
+	v := From(10)
+	got := v.Expect("")
+	if got != 10 {
+		t.Errorf("v.Expect(\"\") = %d; Wanted 10", got)
 	}
 }
 
-func TestNullableFallbackSome(t *testing.T) {
+func TestNullableValueOrNull(t *testing.T) {
+	v := Nullable[int]{}
+	got := v.ValueOr(20)
+	if got != 20 {
+		t.Errorf("v.ValueOr(20) = %d; Wanted 20", got)
+	}
+}
+
+func TestNullableValueOrSome(t *testing.T) {
 	v := From(10)
-	got := v.Fallback(20)
+	got := v.ValueOr(20)
 	if got != 10 {
-		t.Errorf("v.Fallback(20) = %d; Wanted 10", got)
+		t.Errorf("v.ValueOr(20) = %d; Wanted 10", got)
+	}
+}
+
+func TestNullableValueOrElseNull(t *testing.T) {
+	v := Nullable[int]{}
+	f := func() int {
+		return 20
+	}
+	got := v.ValueOrElse(f)
+	if got != 20 {
+		t.Errorf("v.ValueOrElse(f) = %d; Wanted 20", got)
+	}
+}
+
+func TestNullableValueOrElseSome(t *testing.T) {
+	v := From(10)
+	f := func() int {
+		return 20
+	}
+	got := v.ValueOrElse(f)
+	if got != 10 {
+		t.Errorf("v.ValueOrElse(f) = %d; Wanted 10", got)
 	}
 }
 
 func TestNullableSet(t *testing.T) {
 	v := From(10)
 	v.Set(20)
-	got := v.Unwrap()
+	got := v.Value()
 	if got != 20 {
 		t.Errorf("v.Set(20) = %d; Wanted 20", got)
 	}
@@ -96,9 +160,9 @@ func TestUnmarshalNull(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %t; Wanted nil", err)
 	}
-	got := v.Fallback(20)
+	got := v.ValueOr(20)
 	if got != 20 {
-		t.Errorf("v.Fallback(20) = %d; Wanted 20", got)
+		t.Errorf("v.ValueOr(20) = %d; Wanted 20", got)
 	}
 }
 
@@ -109,18 +173,18 @@ func TestUnmarshalSome(t *testing.T) {
 	if err != nil {
 		t.Errorf("err = %t; Wanted nil", err)
 	}
-	got := v.Fallback(20)
+	got := v.ValueOr(20)
 	if got != 10 {
-		t.Errorf("v.Fallback(20) = %d; Wanted 10", got)
+		t.Errorf("v.ValueOr(20) = %d; Wanted 10", got)
 	}
 }
 
 func TestUnmarshalFail(t *testing.T) {
 	var v Nullable[int]
-	input := []byte("what")
+	input := []byte("\"what\"")
 	err := json.Unmarshal(input, &v)
 	if err == nil {
-		t.Errorf("err = %t; Wanted error", err)
+		t.Errorf("err = nil; Wanted error")
 	}
 }
 
