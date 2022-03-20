@@ -14,6 +14,13 @@ func TestFrom(t *testing.T) {
 	}
 }
 
+func TestNull(t *testing.T) {
+	v := Null[int]()
+	if v.ptr != nil {
+		t.Errorf("v.ptr != nil; Expected equal")
+	}
+}
+
 func TestIsNull(t *testing.T) {
 	v := From(10)
 	if v.IsNull() {
