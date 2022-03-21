@@ -242,3 +242,37 @@ func TestMarshalNull(t *testing.T) {
 		t.Errorf("json.Marshal(v) = %s; Wanted \"null\"", string(out))
 	}
 }
+
+func TestUnmarshalSliceSome(t *testing.T) {
+	type S struct {
+		A Nullable[[]int] `json:"a"`
+	}
+	var v S
+	input := []byte("{\"a\": [1, 2, 3]}")
+	err := json.Unmarshal(input, &v)
+	if err != nil {
+		t.Errorf("err = %v; Wanted nil", err)
+	}
+	if v.A.ptr == nil || v.A.present == false {
+		t.Errorf("v = %v; Wanted {nil, false}", v)
+	}
+	a := v.A.Value()
+	if len(a) != 3 || a[0] != 1 || a[1] != 2 || a[2] != 3 {
+		t.Errorf("v.A = %v; Wanted [1, 2, 3]", a)
+	}
+}
+
+func TestUnmarshalSliceAbsent(t *testing.T) {
+	type S struct {
+		A Nullable[[]int] `json:"a"`
+	}
+	var v S
+	input := []byte("{}")
+	err := json.Unmarshal(input, &v)
+	if err != nil {
+		t.Errorf("err = %v; Wanted nil", err)
+	}
+	if v.A.ptr != nil || v.A.present != false {
+		t.Errorf("v = %v; Wanted {nil, false}", v)
+	}
+}
