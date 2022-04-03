@@ -30,6 +30,11 @@ func (n Nullable[T]) IsPresent() bool {
 	return n.present
 }
 
+// Is the opposite of IsPresent()
+func (n Nullable[T]) IsAbsent() bool {
+	return !n.present
+}
+
 // Unwraps the Nullable object, calling os.Exit if the Nullable is null.
 func (n Nullable[T]) Value() T {
 	// This branch does have test coverage, but because of how it must be run
@@ -126,6 +131,6 @@ func Null[T any]() Nullable[T] {
 }
 
 // Creates a null Nullable object with present set to false.
-func Empty[T any]() Nullable[T] {
+func Absent[T any]() Nullable[T] {
 	return Nullable[T]{nil, false}
 }
