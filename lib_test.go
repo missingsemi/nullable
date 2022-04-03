@@ -24,7 +24,7 @@ func TestNull(t *testing.T) {
 }
 
 func TestEmpty(t *testing.T) {
-	v := Empty[int]()
+	v := Absent[int]()
 	if v.ptr != nil || v.present != false {
 		t.Errorf("v = %v; Wanted {nil, false}", v)
 	}
@@ -63,6 +63,16 @@ func TestIsPresent(t *testing.T) {
 	}
 }
 
+func TestIsAbsent(t *testing.T) {
+	v := Nullable[int]{nil, true}
+	if v.IsAbsent() {
+		t.Errorf("v.IsAbsent() = true; Expected false")
+	}
+	v = Nullable[int]{nil, false}
+	if !v.IsAbsent() {
+		t.Errorf("v.IsAbsent() = false; Expected true")
+	}
+}
 func TestNullableValueNull(t *testing.T) {
 	if os.Getenv("OS_EXIT_TEST") == "1" {
 		v := Null[int]()
