@@ -6,14 +6,6 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-/*
-	v1 := From(10)
-	i := 10
-	v2 := Nullable[int]{&i, true}
-	if *v1.ptr != *v2.ptr {
-		t.Errorf("v.From(10) != Nullable{&10}; Expected equal")
-	}
-*/
 func TestValidatePresentPass(t *testing.T) {
 
 	validate := validator.New()

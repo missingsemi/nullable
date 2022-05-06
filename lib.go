@@ -1,65 +1,100 @@
+/*
+Package nullable provides a Nullable type that is able to represent null values in addition to differentiating them from absent json keys.
+*/
 package nullable
 
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 )
 
-// Struct representing a value that can either exist or be null.
-// Implements Marshaler and Unmarshaler, falling back on default behavior after doing a null check.
+/*
+Nullable represents a value that can either exist or be null.
+This type was designed to be especially useful for receiving input from JSON APIs.
+As such, it implements the Marhsaler and Unmarshaler interfaces.
+It is also possible to use this type with the validator package.
+*/
 type Nullable[T any] struct {
 	ptr     *T
 	present bool
 }
 
-// Returns true if the Nullable represents a null value.
+/*
+IsNull returns true if the Nullable is null, false otherwise.
+*/
 func (n Nullable[T]) IsNull() bool {
 	return n.ptr == nil
 }
 
-// Returns true if the Nullable represents a non null value.
+/*
+HasValue returns true if the Nullable holds a value, false otherwise.
+*/
 func (n Nullable[T]) HasValue() bool {
 	return n.ptr != nil
 }
 
-// Returns true if the key associated with the value was present in the supplied json.
-// I.E. {"key": null} would have IsPresent() return true while {} would have IsPresent() return false.
-// Used in cases where it is important to differentiate between a null value and a missing value.
+/*
+IsPresent returns true if the Nullable holds a value or was explicitly set to null.
+This is useful after unmarshalling json to differentiate between keys that were absent or directly set to null.
+
+	type Example struct {
+		Key nullable.Nullable[string] `json:"key"`
+	}
+
+	var input Example
+	json.Unmarshal(
+		[]byte("{\"key\": null}"),
+		&input,
+	)
+	input.Key.IsPresent() // true
+
+	json.Unmarshal(
+		[]byte("{}"),
+		&input,
+	)
+	input.Key.IsPresent() // false
+
+*/
 func (n Nullable[T]) IsPresent() bool {
 	return n.present
 }
 
-// Is the opposite of IsPresent()
+/*
+IsAbsent returns false if the Nullable holds a value or was explicitly set to null.
+See the documentation for IsPresent to see the diference between absent and present nulls.
+*/
 func (n Nullable[T]) IsAbsent() bool {
 	return !n.present
 }
 
-// Unwraps the Nullable object, calling os.Exit if the Nullable is null.
+/*
+Value returns the value held by the Nullable.
+If the Nullable is null, Value panics with a default message.
+*/
 func (n Nullable[T]) Value() T {
-	// This branch does have test coverage, but because of how it must be run
-	// this fact isn't picked up by the coverage profile.
 	if n.ptr == nil {
 		var tmp T
-		outStr := fmt.Sprintf("Unwrapped on a null %T", tmp)
-		os.Stderr.WriteString(outStr)
-		os.Exit(1)
+		outStr := fmt.Sprintf("Value() called on a null %T", tmp)
+		panic(outStr)
 	}
 	return *n.ptr
 }
 
-// Unwraps the Nullable, printing failStr to Stderr then calling os.Exit if the nullable is null.
-func (n Nullable[T]) Expect(failStr string) T {
-	// This branch does have test coverage, but because of how it must be run
-	// this fact isn't picked up by the coverage profile.
+/*
+Expect returns the value held by the Nullable.
+If the Nullable is null, Expect panics with the provided message.
+*/
+func (n Nullable[T]) Expect(msg string) T {
 	if n.ptr == nil {
-		os.Stderr.WriteString(failStr)
-		os.Exit(1)
+		panic(msg)
 	}
 	return *n.ptr
 }
 
-// Unwraps the Nullable or returns the fallback value if the Nullable is null.
+/*
+ValueOr returns the value held by the Nullable.
+If the Nullable is null, ValueOr returns the provided fallback.
+*/
 func (n Nullable[T]) ValueOr(fallback T) T {
 	if n.ptr == nil {
 		return fallback
@@ -67,7 +102,10 @@ func (n Nullable[T]) ValueOr(fallback T) T {
 	return *n.ptr
 }
 
-// Unwraps the Nullable or returns the output of the provided callback.
+/*
+ValueOrElse returns the value held by the Nullable.
+If the Nullable is null, ValueOrElse calls the provided callback and returns its return value.
+*/
 func (n Nullable[T]) ValueOrElse(callback func() T) T {
 	if n.ptr == nil {
 		return callback()
@@ -75,62 +113,66 @@ func (n Nullable[T]) ValueOrElse(callback func() T) T {
 	return *n.ptr
 }
 
-// Sets the Nullable's value to the passed value.
-// No cleanup is done on the previously stored value if it existed.
-// A pointer to the stored value is returned.
+/*
+Set stores the provided value in the Nullable and marks the Nullable as present.
+A pointer to the held value is returned.
+*/
 func (n *Nullable[T]) Set(value T) *T {
 	n.ptr = &value
 	n.present = true
 	return n.ptr
 }
 
-// Sets the Nullable's value to null.
-// No cleanup is done on the previously stored value if it existed.
+/*
+Clear removes the stored value and marks the Nullable as present.
+*/
 func (n *Nullable[T]) Clear() {
 	n.ptr = nil
 	n.present = true
 }
 
-// Checks if the json data is equal to null. Otherwise falls back onto default behavior.
+/*
+UnmarshalJSON implements the json.Unmarshaler interface.
+Calls to UnmarshalJSON always mark the Nullable as present.
+*/
 func (n *Nullable[T]) UnmarshalJSON(raw []byte) error {
 	n.present = true
-
-	if string(raw) == "null" {
-		n.ptr = nil
-		return nil
-	}
-
-	var res T
-	err := json.Unmarshal(raw, &res)
-
+	err := json.Unmarshal(raw, &n.ptr)
 	if err != nil {
 		n.ptr = nil
 		return err
 	}
-
-	n.ptr = &res
 	return nil
 }
 
-// Converts the Nullable to null or falls back on default behavior if the value exists.
+/*
+MarshalJSON implements the json.Marshaler interface.
+Whether or not the Nullable is marked as present has no effect on MarshalJSON.
+*/
 func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 	if n.ptr == nil {
-		return []byte{'n', 'u', 'l', 'l'}, nil
+		return []byte("null"), nil
 	}
 	return json.Marshal(*n.ptr)
 }
 
-// Creates a Nullable object from the passed value.
+/*
+From creates a new Nullable that holds the provided value.
+*/
 func From[T any](val T) Nullable[T] {
 	return Nullable[T]{&val, true}
 }
 
-// Creates a null Nullable object.
+/*
+Null creates a new Nullable that is marked present and holds no value.
+*/
 func Null[T any]() Nullable[T] {
 	return Nullable[T]{nil, true}
 }
 
-// Creates a null Nullable object with present set to false.
+/*
+Absent creates a new Nullable that is marked absent and holds no value.
+*/
 func Absent[T any]() Nullable[T] {
 	return Nullable[T]{nil, false}
 }
