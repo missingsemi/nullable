@@ -6,97 +6,116 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-func TestValidatePresentPass(t *testing.T) {
-
+func TestValidate(t *testing.T) {
 	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:"required,min=5"`
+	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[int]{}, Nullable[string]{})
+	{
+		type S struct {
+			S Nullable[int] `validate:"required,min=5"`
+		}
+		tmp := 10
+		got := S{Nullable[int]{&tmp, true}}
+		if err := validate.Struct(got); err != nil {
+			t.Errorf("validate.Struct(got) = %v. Expected %v.", err, nil)
+		}
 	}
-
-	v := A{From("hello")}
-	if err := validate.Struct(v); err != nil {
-		t.Errorf("err = %v; Expected nil", err)
+	{
+		type S struct {
+			S Nullable[string] `validate:"required,min=5"`
+		}
+		tmp := "hello"
+		got := S{Nullable[string]{&tmp, true}}
+		if err := validate.Struct(got); err != nil {
+			t.Errorf("validate.Struct(got) = %v. Expected %v.", err, nil)
+		}
 	}
-}
-
-func TestValidatePresentFail(t *testing.T) {
-
-	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:"required,min=5"`
+	{
+		type S struct {
+			S Nullable[int] `validate:"required,min=5"`
+		}
+		tmp := 1
+		got := S{Nullable[int]{&tmp, true}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-
-	// Fail on min
-
-	v1 := A{From("a")}
-	if err := validate.Struct(v1); err == nil {
-		t.Error("err = nil; Expected err")
+	{
+		type S struct {
+			S Nullable[string] `validate:"required,min=5"`
+		}
+		tmp := "hi"
+		got := S{Nullable[string]{&tmp, true}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-
-	// Fail on required
-
-	v2 := A{From("")}
-	if err := validate.Struct(v2); err == nil {
-		t.Error("err = nil; Expected err")
+	{
+		type S struct {
+			S Nullable[int] `validate:"required,min=5"`
+		}
+		tmp := 10
+		got := S{Nullable[int]{&tmp, false}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-}
-
-func TestValidateAbsentPass(t *testing.T) {
-	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:""`
+	{
+		type S struct {
+			S Nullable[string] `validate:"required,min=5"`
+		}
+		tmp := "hello"
+		got := S{Nullable[string]{&tmp, false}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-
-	v1 := A{Absent[string]()}
-	if err := validate.Struct(v1); err != nil {
-		t.Errorf("err = %v; Expected nil", err)
+	{
+		type S struct {
+			S Nullable[int] `validate:"required,min=5"`
+		}
+		got := S{Nullable[int]{nil, true}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-}
-
-func TestValidateAbsentFail(t *testing.T) {
-	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:"required"`
+	{
+		type S struct {
+			S Nullable[string] `validate:"required,min=5"`
+		}
+		got := S{Nullable[string]{nil, true}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-
-	v1 := A{Absent[string]()}
-	if err := validate.Struct(v1); err == nil {
-		t.Error("err = nil; Expected err")
+	{
+		type S struct {
+			S Nullable[int] `validate:"required,min=5"`
+		}
+		got := S{Nullable[int]{nil, false}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-}
-
-func TestValidateNullPass(t *testing.T) {
-	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:""`
+	{
+		type S struct {
+			S Nullable[string] `validate:"required,min=5"`
+		}
+		got := S{Nullable[string]{nil, false}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
-
-	v1 := A{Null[string]()}
-	if err := validate.Struct(v1); err != nil {
-		t.Errorf("err = %v; Expected nil", err)
-	}
-}
-
-func TestValidateNullFail(t *testing.T) {
-	validate := validator.New()
-	validate.RegisterCustomTypeFunc(ValidateNullable, Nullable[string]{})
-
-	type A struct {
-		A Nullable[string] `validate:"required"`
-	}
-
-	v1 := A{Null[string]()}
-	if err := validate.Struct(v1); err == nil {
-		t.Error("err = nil; Expected err")
+	{
+		type Invalid struct {
+			Invalid int
+		}
+		type S struct {
+			S Invalid `validate:"required"`
+		}
+		validate.RegisterCustomTypeFunc(ValidateNullable, Invalid{})
+		got := S{Invalid{10}}
+		if err := validate.Struct(got); err == nil {
+			t.Errorf("validate.Struct(got) = %v. Expected error.", err)
+		}
 	}
 }
