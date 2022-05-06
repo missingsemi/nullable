@@ -2,23 +2,28 @@ package nullable
 
 import "reflect"
 
-// Non-generic version of Nullable that is usable in validator
-type interfaced struct {
+/*
+interfaceNullable is an Interface-based Nullable that is used for validator support.
+Because validator doesn't support generics, a Nullable[T] has to be converted into an interfaceNullable before being validated.
+*/
+type interfaceNullable struct {
 	ptr     *interface{}
 	present bool
 }
 
-// Interface that Nullable implements
-// Allows us to get an interfaced without ever knowing what type of Nullable was passed in.
+/*
+interfaceable requires a method that generates an interfaceNullable.
+*/
 type interfaceable interface {
-	toInterfaced() interfaced
+	toInterfaceNullable() interfaceNullable
 }
 
-// Essentially converts a Nullable[T] to a Nullable[interface{}]
-// Unfortunately seems to be necessary for validator support :(
-func (n Nullable[T]) toInterfaced() interfaced {
+/*
+toInterfaceNullable implements interfaceable for the Nullable type.
+*/
+func (n Nullable[T]) toInterfaceNullable() interfaceNullable {
 	if n.ptr == nil {
-		return interfaced{
+		return interfaceNullable{
 			ptr:     nil,
 			present: n.present,
 		}
@@ -26,17 +31,19 @@ func (n Nullable[T]) toInterfaced() interfaced {
 
 	tmp := interface{}(*n.ptr)
 
-	return interfaced{
+	return interfaceNullable{
 		ptr:     &tmp,
 		present: n.present,
 	}
 }
 
-// Function to be registered with github.com/go-playground/validator
-// Unfortunately, it must be registered against every instantiation of Nullable that needs to be validated.
+/*
+Handler to be registered with validator.
+Due to how go handles generics, each instantiated type of Nullable must be registered with validator.
+*/
 func ValidateNullable(field reflect.Value) interface{} {
 	if converted, ok := field.Interface().(interfaceable); ok {
-		interfaced := converted.toInterfaced()
+		interfaced := converted.toInterfaceNullable()
 
 		if !interfaced.present || interfaced.ptr == nil {
 			return nil
