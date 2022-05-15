@@ -437,6 +437,48 @@ func TestValueOrElse(t *testing.T) {
 	}
 }
 
+func TestValueOrDefault(t *testing.T) {
+	{
+		tmp := 10
+		got := Nullable[int]{&tmp, true}
+		if got.ValueOrDefault() != tmp {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), tmp)
+		}
+	}
+	{
+		tmp := true
+		got := Nullable[bool]{&tmp, true}
+		if got.ValueOrDefault() != tmp {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), tmp)
+		}
+	}
+	{
+		tmp := "hello"
+		got := Nullable[string]{&tmp, true}
+		if got.ValueOrDefault() != tmp {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), tmp)
+		}
+	}
+	{
+		got := Nullable[int]{nil, true}
+		if got.ValueOrDefault() != 0 {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), 0)
+		}
+	}
+	{
+		got := Nullable[bool]{nil, true}
+		if got.ValueOrDefault() != false {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), false)
+		}
+	}
+	{
+		got := Nullable[string]{nil, true}
+		if got.ValueOrDefault() != "" {
+			t.Errorf("got.ValueOrDefault() = %v. Wanted %v.", got.ValueOrDefault(), "")
+		}
+	}
+}
+
 func TestSet(t *testing.T) {
 	{
 		got := Nullable[int]{nil, false}

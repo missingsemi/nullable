@@ -114,6 +114,18 @@ func (n Nullable[T]) ValueOrElse(callback func() T) T {
 }
 
 /*
+ValueOrDefault returns the value held by the Nullable.
+If the Nullable is null, ValueOrDefault returns the zero value of the type T.
+*/
+func (n Nullable[T]) ValueOrDefault() T {
+	if n.ptr == nil {
+		var tmp T
+		return tmp
+	}
+	return *n.ptr
+}
+
+/*
 Set stores the provided value in the Nullable and marks the Nullable as present.
 A pointer to the held value is returned.
 */
