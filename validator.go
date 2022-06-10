@@ -7,7 +7,7 @@ interfaceNullable is an Interface-based Nullable that is used for validator supp
 Because validator doesn't support generics, a Nullable[T] has to be converted into an interfaceNullable before being validated.
 */
 type interfaceNullable struct {
-	ptr     *interface{}
+	ptr     interface{}
 	present bool
 }
 
@@ -48,7 +48,7 @@ func ValidateNullable(field reflect.Value) interface{} {
 		if !interfaced.present || interfaced.ptr == nil {
 			return nil
 		}
-		return *interfaced.ptr
+		return interfaced.ptr
 	}
 
 	return nil
