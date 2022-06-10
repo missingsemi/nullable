@@ -5,7 +5,6 @@ package nullable
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -133,7 +132,7 @@ If the Nullable is null, TryValue returns a non-nil error.
 func (n Nullable[T]) TryValue() (T, error) {
 	if n.ptr == nil {
 		var tmp T
-		return tmp, errors.New(fmt.Sprintf("Value() called on a null %T", tmp))
+		return tmp, fmt.Errorf("Value() called on a null %T", tmp)
 	}
 	return *n.ptr, nil
 }
