@@ -479,6 +479,48 @@ func TestValueOrDefault(t *testing.T) {
 	}
 }
 
+func TestTryValue(t *testing.T) {
+	{
+		tmp := 10
+		got := Nullable[int]{&tmp, true}
+		if value, err := got.TryValue(); value != tmp {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, %v.", value, err, 10, nil)
+		}
+	}
+	{
+		tmp := true
+		got := Nullable[bool]{&tmp, true}
+		if value, err := got.TryValue(); value != tmp {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, %v.", value, err, true, nil)
+		}
+	}
+	{
+		tmp := "hello"
+		got := Nullable[string]{&tmp, true}
+		if value, err := got.TryValue(); value != tmp {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, %v.", value, err, "hello", nil)
+		}
+	}
+	{
+		got := Nullable[int]{nil, true}
+		if value, err := got.TryValue(); value != 0 {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, error.", value, err, 0)
+		}
+	}
+	{
+		got := Nullable[bool]{nil, true}
+		if value, err := got.TryValue(); value != false {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, error.", value, err, false)
+		}
+	}
+	{
+		got := Nullable[string]{nil, true}
+		if value, err := got.TryValue(); value != "" {
+			t.Errorf("got.TryValue() = %v, %v. Wanted %v, error.", value, err, "")
+		}
+	}
+}
+
 func TestSet(t *testing.T) {
 	{
 		got := Nullable[int]{nil, false}
